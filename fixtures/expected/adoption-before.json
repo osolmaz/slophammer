@@ -50,12 +50,6 @@
       "message": "TypeScript projects must declare a linter in CI or scripts"
     },
     {
-      "rule_id": "ts.mutation-required",
-      "severity": "error",
-      "path": ".github/workflows",
-      "message": "TypeScript projects must declare mutation testing"
-    },
-    {
       "rule_id": "ts.no-explicit-any",
       "severity": "error",
       "path": "eslint.config.mjs",

@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/osolmaz/slophammer/go/internal/config"
 	"github.com/osolmaz/slophammer/go/internal/gotools"
 	"github.com/osolmaz/slophammer/go/internal/repo"
 )
@@ -63,12 +64,32 @@ func TestDefaultRulesReportMissingGoGuardrails(t *testing.T) {
 		GoDryRequiredRuleID,
 		GoLintRequiredRuleID,
 		GoModuleRequiredRuleID,
-		GoMutationRequiredRuleID,
 		GoTestsRequiredRuleID,
 		GoVetRequiredRuleID,
 		CIRequiredRuleID,
 	}
 	assertRuleIDs(t, report.Findings, wantRuleIDs)
+
+	optedIn := runWithMutationOptIn(snapshot)
+	assertRuleIDs(t, optedIn.Findings, []string{
+		GoComplexityRequiredRuleID,
+		GoCoverageRequiredRuleID,
+		GoCRAPRequiredRuleID,
+		GoDryRequiredRuleID,
+		GoLintRequiredRuleID,
+		GoModuleRequiredRuleID,
+		GoMutationRequiredRuleID,
+		GoTestsRequiredRuleID,
+		GoVetRequiredRuleID,
+		CIRequiredRuleID,
+	})
+}
+
+// runWithMutationOptIn runs the default rules for a repo whose config sets
+// go.mutation.enabled, the opt-in that arms go.mutation-required.
+func runWithMutationOptIn(snapshot repo.Snapshot) Report {
+	cfg := config.Config{Go: config.GoConfig{Mutation: config.MutationConfig{Enabled: true}}}
+	return RunWithPolicy(context.Background(), snapshot, DefaultRules(), NewPolicy(cfg, nil))
 }
 
 func TestDefaultRulesPassForGoRepoWithDeclaredGuardrails(t *testing.T) {

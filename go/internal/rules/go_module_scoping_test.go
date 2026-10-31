@@ -42,7 +42,7 @@ func TestGoRulesIgnoreEmbeddedFixtureEvidence(t *testing.T) {
 		Content: cleanMutationScript("internal/rules/rules.go"),
 	}
 
-	report := Run(context.Background(), repo.NewSnapshot("/repo", files), DefaultRules())
+	report := runWithMutationOptIn(repo.NewSnapshot("/repo", files))
 
 	assertRuleIDs(t, report.Findings, []string{
 		GoComplexityRequiredRuleID,
@@ -390,7 +390,7 @@ func TestGoRulesDetectRootGoSourceWithNestedModule(t *testing.T) {
 		".github/workflows/ci.yml":                  {Path: ".github/workflows/ci.yml", Content: nestedGoWorkflow},
 	}
 
-	report := Run(context.Background(), repo.NewSnapshot("/repo", files), DefaultRules())
+	report := runWithMutationOptIn(repo.NewSnapshot("/repo", files))
 
 	assertRuleIDs(t, report.Findings, []string{
 		GoComplexityRequiredRuleID,

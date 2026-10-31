@@ -323,7 +323,7 @@ mod tests {
             )]),
         };
         let config = crate::config::parse(
-            "rules:\n  rust.mutation-required:\n    disabled: true\n    reason: checked elsewhere\nrust:\n  mutation:\n    targets:\n      - src\n",
+            "rules:\n  rust.mutation-required:\n    disabled: true\n    reason: checked elsewhere\nrust:\n  mutation:\n    enabled: true\n    targets:\n      - src\n",
         )
         .expect("config");
         let selected = ["rust.mutation-required".to_owned()];
@@ -336,6 +336,59 @@ mod tests {
 
         assert!(findings.is_empty());
         assert_eq!(runner.calls.get(), 0);
+    }
+
+    #[test]
+    fn mutation_without_opt_in_never_reaches_the_runner() {
+        let snapshot = Snapshot {
+            root: PathBuf::from("."),
+            files: BTreeMap::from([(
+                "Cargo.toml".to_owned(),
+                RepoFile {
+                    path: "Cargo.toml".to_owned(),
+                    content: String::new(),
+                },
+            )]),
+        };
+        let config = crate::config::parse("rust:\n  mutation:\n    targets:\n      - src\n")
+            .expect("config");
+        let selected = ["rust.mutation-required".to_owned()];
+        let policy = RulePolicy::for_check(&config, &selected);
+        let runner = RecordingRunner {
+            calls: Cell::new(0),
+        };
+
+        let findings = execute_rust_checks(&snapshot, &config, &policy, &runner);
+
+        assert!(findings.is_empty());
+        assert_eq!(runner.calls.get(), 0);
+    }
+
+    #[test]
+    fn opted_in_mutation_reaches_the_runner() {
+        let snapshot = Snapshot {
+            root: PathBuf::from("."),
+            files: BTreeMap::from([(
+                "Cargo.toml".to_owned(),
+                RepoFile {
+                    path: "Cargo.toml".to_owned(),
+                    content: String::new(),
+                },
+            )]),
+        };
+        let config = crate::config::parse(
+            "rust:\n  mutation:\n    enabled: true\n    targets:\n      - src\n",
+        )
+        .expect("config");
+        let selected = ["rust.mutation-required".to_owned()];
+        let policy = RulePolicy::for_check(&config, &selected);
+        let runner = RecordingRunner {
+            calls: Cell::new(0),
+        };
+
+        execute_rust_checks(&snapshot, &config, &policy, &runner);
+
+        assert_eq!(runner.calls.get(), 1);
     }
 
     #[test]

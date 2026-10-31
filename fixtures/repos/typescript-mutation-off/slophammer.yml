@@ -1,7 +1,3 @@
-rules:
-  ts.mutation-required:
-    disabled: true
-    reason: checked by another required job
 typescript:
   coverage:
     threshold: 85
@@ -14,9 +10,6 @@ typescript:
     copied_blocks:
       enabled: true
       min_tokens: 100
-  mutation:
-    targets:
-      - src/rules.ts
   dependency_boundaries:
     - from: src/rules
       allow:

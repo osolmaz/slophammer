@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { emptyConfig } from "../src/config/config.js";
 import { newSnapshot } from "../src/repo/repo.js";
 import { runRules } from "../src/rules/rules.js";
+import { mutationOptInConfig } from "./helpers.js";
 
 describe("TypeScript project detection", () => {
   it("does not treat TypeScript-only tooling files as production TypeScript", () => {
@@ -206,9 +207,9 @@ describe("TypeScript project scoping", () => {
 
   it("does not leak nested workflow or package-script commands into the root project", () => {
     const report = runRules(newSnapshot("/repo", rootProjectWithNestedOnlyCommands()), {
-      ...emptyConfig(),
+      ...mutationOptInConfig(),
       typescript: {
-        ...emptyConfig().typescript,
+        ...mutationOptInConfig().typescript,
         dependencyBoundaries: [
           { from: "src", allow: [] },
           { from: "packages/app/src", allow: [] }
@@ -233,9 +234,9 @@ describe("TypeScript project scoping", () => {
 
   it("does not leak root workflow commands into a single nested package", () => {
     const report = runRules(newSnapshot("/repo", rootAndNestedWithRootOnlyCommands()), {
-      ...emptyConfig(),
+      ...mutationOptInConfig(),
       typescript: {
-        ...emptyConfig().typescript,
+        ...mutationOptInConfig().typescript,
         dependencyBoundaries: [
           { from: "src", allow: [] },
           { from: "packages/app/src", allow: [] }

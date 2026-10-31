@@ -50,6 +50,12 @@ class TestShapeErrors:
     def test_threshold_must_be_integer(self):
         rejects("python:\n  coverage:\n    threshold: high\n", "must be an integer")
 
+    def test_mutation_enabled_must_be_boolean(self):
+        rejects(
+            'python:\n  mutation:\n    enabled: "yes"\n',
+            "python.mutation.enabled must be a boolean",
+        )
+
     def test_copied_blocks_enabled_must_be_boolean(self):
         rejects(
             'python:\n  dry:\n    copied_blocks:\n      enabled: "yes"\n',
@@ -115,6 +121,14 @@ class TestPolicyErrors:
 
 
 class TestIgnoredSections:
+    def test_every_language_accepts_the_mutation_opt_in(self):
+        config = parse_config(
+            "go:\n  mutation:\n    enabled: true\n"
+            "typescript:\n  mutation:\n    enabled: true\n"
+            "rust:\n  mutation:\n    enabled: true\n"
+        )
+        assert config.configured
+
     def test_go_structural_unknown_key(self):
         rejects("go:\n  dry:\n    structural:\n      made_up: true\n", "is not supported")
 

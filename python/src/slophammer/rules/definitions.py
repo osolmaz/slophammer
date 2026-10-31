@@ -166,7 +166,9 @@ DEFAULT_DEFINITIONS: tuple[Definition, ...] = (
         path=".github/workflows",
         message="Python projects must declare mutation testing (mutmut or cosmic-ray)",
         description=(
-            "Binding CI evidence must declare a mutation testing tool. Only "
+            "Opt-in: this rule runs only when slophammer.yml sets "
+            "python.mutation.enabled: true. Binding CI evidence must then "
+            "declare a mutation testing tool. Only "
             "executing invocations count: list, scan, check, dry-run, and "
             "manifest-only forms cannot fail on a surviving mutant and are "
             "not evidence. mutmut and cosmic-ray exec exit zero even when "

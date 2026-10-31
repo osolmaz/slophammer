@@ -50,12 +50,6 @@
       "message": "Rust projects must declare cargo fmt --check in CI or scripts"
     },
     {
-      "rule_id": "rust.mutation-required",
-      "severity": "error",
-      "path": ".github/workflows",
-      "message": "Rust projects must declare mutation testing"
-    },
-    {
       "rule_id": "rust.test-required",
       "severity": "error",
       "path": ".github/workflows",

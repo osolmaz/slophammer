@@ -26,7 +26,7 @@ export async function executeTypeScriptChecks(
   root: string,
   runner: Runner,
   workspaceRoot = root,
-  policy: RulePolicy = new RulePolicy(new Map())
+  policy: RulePolicy = RulePolicy.defaults()
 ): Promise<readonly Finding[]> {
   const packageJson = packageJSON(root);
   if (packageJson === undefined) {

@@ -39,11 +39,20 @@ export type CoverageConfig = {
   readonly exclude: readonly string[];
 };
 
+/**
+ * Mutation testing is opt-in: ts.mutation-required and its execute step run
+ * only when `enabled` is true. Targets still describe mutation scope.
+ */
+export type MutationConfig = {
+  readonly enabled: boolean;
+  readonly targets: readonly string[];
+};
+
 export type TypeScriptConfig = {
   readonly coverage: CoverageConfig;
   readonly complexityMax: number;
   readonly dry: DryConfig;
-  readonly mutationTargets: readonly string[];
+  readonly mutation: MutationConfig;
   readonly dependencyBoundaries: readonly DependencyBoundary[];
 };
 
@@ -65,7 +74,7 @@ export function emptyConfig(): Config {
         exclude: [],
         copiedBlocks: { enabled: false, enabledSet: false, minTokens: 0 }
       },
-      mutationTargets: [],
+      mutation: { enabled: false, targets: [] },
       dependencyBoundaries: []
     }
   };
@@ -123,7 +132,7 @@ function parseTypeScriptConfig(root: Readonly<Record<string, unknown>>): TypeScr
   const complexity = asSection(root["complexity"], "typescript.complexity");
   assertKnownKeys(complexity, "typescript.complexity", ["max"]);
   const mutation = asSection(root["mutation"], "typescript.mutation");
-  assertKnownKeys(mutation, "typescript.mutation", ["targets"]);
+  assertKnownKeys(mutation, "typescript.mutation", ["enabled", "targets"]);
   const dry = asSection(root["dry"], "typescript.dry");
   assertKnownKeys(dry, "typescript.dry", ["max_findings", "paths", "exclude", "copied_blocks"]);
   const copiedBlocks = asSection(dry["copied_blocks"], "typescript.dry.copied_blocks");
@@ -149,7 +158,10 @@ function parseTypeScriptConfig(root: Readonly<Record<string, unknown>>): TypeScr
         )
       }
     },
-    mutationTargets: optionalStringArray(mutation["targets"], "typescript.mutation.targets"),
+    mutation: {
+      enabled: optionalBoolean(mutation["enabled"], "typescript.mutation.enabled"),
+      targets: optionalStringArray(mutation["targets"], "typescript.mutation.targets")
+    },
     dependencyBoundaries: asDependencyBoundaries(root["dependency_boundaries"])
   };
 }
@@ -313,7 +325,7 @@ function validateIgnoredGoConfig(value: unknown): void {
   ]);
   assertKnownKeys(asSection(root["crap"], "go.crap"), "go.crap", ["max_score"]);
   const mutation = asSection(root["mutation"], "go.mutation");
-  assertKnownKeys(mutation, "go.mutation", ["targets", "exclude"]);
+  assertKnownKeys(mutation, "go.mutation", ["enabled", "targets", "exclude"]);
   const dry = asSection(root["dry"], "go.dry");
   assertKnownKeys(dry, "go.dry", [
     "max_findings",
@@ -366,7 +378,7 @@ function validateIgnoredRustConfig(value: unknown): void {
   assertKnownKeys(unsafePolicy, "rust.unsafe", ["policy", "allow"]);
   validateIgnoredUnsafeAllowKeys(unsafePolicy["allow"], "rust.unsafe.allow");
   const mutation = asSection(root["mutation"], "rust.mutation");
-  assertKnownKeys(mutation, "rust.mutation", ["targets", "exclude"]);
+  assertKnownKeys(mutation, "rust.mutation", ["enabled", "targets", "exclude"]);
   validateIgnoredExcludeEntries(root["exclude"], "rust");
   validateIgnoredExcludeEntries(coverage["exclude"], "rust.coverage");
   validateIgnoredExcludeEntries(dry["exclude"], "rust.dry");
@@ -398,7 +410,7 @@ function validateIgnoredPythonConfig(value: unknown): void {
     ["enabled", "min_tokens"]
   );
   const mutation = asSection(root["mutation"], "python.mutation");
-  assertKnownKeys(mutation, "python.mutation", ["targets", "exclude"]);
+  assertKnownKeys(mutation, "python.mutation", ["enabled", "targets", "exclude"]);
   validateIgnoredExcludeEntries(coverage["exclude"], "python.coverage");
   validateIgnoredExcludeEntries(dry["exclude"], "python.dry");
   validateIgnoredExcludeEntries(mutation["exclude"], "python.mutation");

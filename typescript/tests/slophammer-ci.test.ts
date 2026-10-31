@@ -65,7 +65,7 @@ describe("repo.slophammer-ci-required", () => {
 
 function run(target: Snapshot): ReturnType<typeof runRules> {
   const config = emptyConfig();
-  return runRules(target, config, new RulePolicy(config.rules, [ruleID]));
+  return runRules(target, config, new RulePolicy(config, [ruleID]));
 }
 
 function snapshot(...files: readonly RepoFile[]): Snapshot {

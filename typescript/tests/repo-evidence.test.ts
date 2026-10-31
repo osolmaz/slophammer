@@ -70,7 +70,7 @@ describe("synthetic repo evidence", () => {
     const report = runRules(
       newSnapshot("/repo", nestedPackageRepo("on: [push]")),
       config,
-      new RulePolicy(config.rules, ["ts.lint-required"])
+      new RulePolicy(config, ["ts.lint-required"])
     );
 
     expect(report.findings).toEqual([]);
@@ -106,7 +106,7 @@ describe("synthetic repo evidence", () => {
     const report = runRules(
       newSnapshot("/repo", nestedPackageRepo("on: workflow_dispatch")),
       config,
-      new RulePolicy(config.rules, ["ts.lint-required"])
+      new RulePolicy(config, ["ts.lint-required"])
     );
 
     expect(report.findings.map((finding) => finding.rule_id)).toContain("ts.lint-required");

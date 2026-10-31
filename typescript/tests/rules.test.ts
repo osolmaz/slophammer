@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { emptyConfig } from "../src/config/config.js";
 import { newSnapshot } from "../src/repo/repo.js";
 import { runRules } from "../src/rules/rules.js";
-import { bindingScriptWorkflow } from "./helpers.js";
+import { bindingScriptWorkflow, mutationOptInConfig } from "./helpers.js";
 
 describe("TypeScript rules", () => {
   it("accepts case-insensitive shared repo filenames", () => {
@@ -167,7 +167,7 @@ describe("TypeScript command rules", () => {
           ].join("\n")
         }
       ]),
-      emptyConfig()
+      mutationOptInConfig()
     );
 
     expect(report.findings.map((finding) => finding.rule_id)).toContain("ts.mutation-required");
@@ -436,7 +436,7 @@ describe("TypeScript command parsing", () => {
           content: JSON.stringify({ scripts: packageScripts() })
         }
       ]),
-      emptyConfig()
+      mutationOptInConfig()
     );
 
     expect(report.findings.map((finding) => finding.rule_id)).toEqual(
@@ -503,7 +503,7 @@ describe("TypeScript command parsing", () => {
         { path: "package.json", content: JSON.stringify({ scripts: {} }) },
         enabledESLintConfig()
       ]),
-      emptyConfig()
+      mutationOptInConfig()
     );
 
     expect(report.findings.map((finding) => finding.rule_id)).toEqual(

@@ -69,6 +69,9 @@ The checker recognizes:
   enforced.
 - GitHub Actions workflow matrix commands when the workflow actually executes
   `${{ matrix.command }}`.
+- `stryker run` with a positive `thresholds.break`, for repositories that opt
+  in to mutation testing with `typescript.mutation.enabled: true`. Without the
+  opt-in, the checker does not require mutation testing.
 
 The implementation is intentionally strict. Source uses `unknown` at dynamic
 boundaries, rejects `any`, keeps filesystem/process work outside the rule

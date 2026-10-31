@@ -11,6 +11,7 @@ typescript:
       enabled: true
       min_tokens: 100
   mutation:
+    enabled: true
     targets:
       - src/rules.ts
   dependency_boundaries:

@@ -10,6 +10,7 @@ describe("TypeScript alternate toolchains", () => {
       ...emptyConfig(),
       typescript: {
         ...emptyConfig().typescript,
+        mutation: { enabled: true, targets: [] },
         dependencyBoundaries: [{ from: "src", allow: [] }]
       }
     });

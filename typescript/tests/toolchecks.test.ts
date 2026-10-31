@@ -4,11 +4,13 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { RulePolicy } from "../src/rules/policy.js";
 import {
   executeTypeScriptChecks,
   type CommandResult,
   type Runner
 } from "../src/toolchecks/toolchecks.js";
+import { mutationOptInConfig } from "./helpers.js";
 
 describe("executeTypeScriptChecks", () => {
   it("runs required package scripts with npm by default", async () => {
@@ -358,7 +360,7 @@ describe("executeTypeScriptChecks mutation", () => {
       }
     };
 
-    const findings = await executeTypeScriptChecks(root, runner);
+    const findings = await executeTypeScriptChecks(root, runner, root, mutationOptIn());
 
     expect(calls).toContain("npm run mutate");
     expect(calls.join("\n")).not.toContain("--dryRunOnly");
@@ -376,7 +378,7 @@ describe("executeTypeScriptChecks mutation", () => {
       }
     };
 
-    await executeTypeScriptChecks(root, runner);
+    await executeTypeScriptChecks(root, runner, root, mutationOptIn());
 
     expect(calls).toContain("npm run mutation");
   });
@@ -395,7 +397,7 @@ describe("executeTypeScriptChecks mutation", () => {
       }
     };
 
-    await executeTypeScriptChecks(root, runner);
+    await executeTypeScriptChecks(root, runner, root, mutationOptIn());
 
     expect(calls).toContain("npm run mutation");
     expect(calls.join("\n")).not.toContain("npm run mutate\n");
@@ -414,9 +416,13 @@ describe("executeTypeScriptChecks mutation", () => {
       }
     };
 
-    const findings = await executeTypeScriptChecks(root, runner);
+    const findings = await executeTypeScriptChecks(root, runner, root, mutationOptIn());
 
     expect(findings).toEqual([]);
     expect(calls.join("\n")).not.toContain("npm run mutate");
   });
 });
+
+function mutationOptIn(): RulePolicy {
+  return new RulePolicy(mutationOptInConfig());
+}

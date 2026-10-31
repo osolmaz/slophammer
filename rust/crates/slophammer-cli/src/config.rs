@@ -161,9 +161,13 @@ pub struct UnsafeAllow {
     pub reason: String,
 }
 
+/// Mutation testing is opt-in: `rust.mutation-required` and its execute step
+/// run only when `enabled` is true. Targets still describe mutation scope.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct RustMutation {
+    #[serde(default)]
+    pub enabled: bool,
     #[serde(default)]
     pub targets: Vec<String>,
     #[serde(default)]
@@ -269,7 +273,11 @@ fn validate_python_section(value: &Value) -> Result<(), ConfigError> {
         }
     }
     if let Some(mutation) = mapping.get("mutation") {
-        validate_value_keys(mutation, "python.mutation", &["targets", "exclude"])?;
+        validate_value_keys(
+            mutation,
+            "python.mutation",
+            &["enabled", "targets", "exclude"],
+        )?;
         validate_value_excludes(mutation.get("exclude"), "python.mutation.exclude")?;
     }
     validate_value_entries(
@@ -656,6 +664,28 @@ rust:
                 .and_then(|rule| rule.severity),
             Some(RuleSeverity::Warn)
         );
+    }
+
+    #[test]
+    fn mutation_opt_in_defaults_off_and_parses_in_every_section() {
+        let targets_only = parse("rust:\n  mutation:\n    targets: [src]\n").expect("config");
+        let mutation = targets_only
+            .rust
+            .and_then(|rust| rust.mutation)
+            .expect("mutation");
+        assert!(!mutation.enabled);
+        let opted_in = parse(
+            "python:\n  mutation:\n    enabled: true\nrust:\n  mutation:\n    enabled: true\n",
+        )
+        .expect("config");
+        assert!(
+            opted_in
+                .rust
+                .and_then(|rust| rust.mutation)
+                .is_some_and(|mutation| mutation.enabled)
+        );
+        let error = parse("rust:\n  mutation:\n    enabled: 'yes'\n").unwrap_err();
+        assert!(error.to_string().contains("invalid type"));
     }
 
     #[test]

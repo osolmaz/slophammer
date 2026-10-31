@@ -71,31 +71,6 @@ describe("check execute filters", () => {
     expect(calls).toEqual([]);
   });
 
-  it("does not launch disabled mutation work", async () => {
-    const root = await mutationTypeScriptRepo();
-    const calls: string[] = [];
-    const runner: Runner = {
-      run: (_cwd, command, args) => {
-        calls.push([command, ...args].join(" "));
-        return Promise.resolve({ code: 2, stdout: "", stderr: "should not run" });
-      }
-    };
-
-    const result = await check(
-      {
-        root,
-        format: "json",
-        execute: true,
-        onlyRuleIDs: ["ts.mutation-required"]
-      },
-      runner
-    );
-
-    expect(result.code).toBe(0);
-    expect(parseReport(result.stdout).findings).toEqual([]);
-    expect(calls).toEqual([]);
-  });
-
   it("executes tsgo-only TypeScript packages", async () => {
     const root = await tsgoOnlyTypeScriptRepo();
     const calls: string[] = [];
@@ -124,6 +99,63 @@ describe("check execute filters", () => {
   });
 });
 
+describe("check execute mutation opt-in", () => {
+  it("does not launch disabled mutation work", async () => {
+    const root = await mutationTypeScriptRepo();
+    const calls: string[] = [];
+    const runner: Runner = {
+      run: (_cwd, command, args) => {
+        calls.push([command, ...args].join(" "));
+        return Promise.resolve({ code: 2, stdout: "", stderr: "should not run" });
+      }
+    };
+
+    const result = await check(
+      {
+        root,
+        format: "json",
+        execute: true,
+        onlyRuleIDs: ["ts.mutation-required"]
+      },
+      runner
+    );
+
+    expect(result.code).toBe(0);
+    expect(parseReport(result.stdout).findings).toEqual([]);
+    expect(calls).toEqual([]);
+  });
+
+  it("does not launch mutation work without typescript.mutation.enabled", async () => {
+    const root = await mutationTypeScriptRepo([
+      "typescript:",
+      "  mutation:",
+      "    targets:",
+      "      - src"
+    ]);
+    const calls: string[] = [];
+    const runner: Runner = {
+      run: (_cwd, command, args) => {
+        calls.push([command, ...args].join(" "));
+        return Promise.resolve({ code: 2, stdout: "", stderr: "should not run" });
+      }
+    };
+
+    const result = await check(
+      {
+        root,
+        format: "json",
+        execute: true,
+        onlyRuleIDs: ["ts.mutation-required"]
+      },
+      runner
+    );
+
+    expect(result.code).toBe(0);
+    expect(parseReport(result.stdout).findings).toEqual([]);
+    expect(calls).toEqual([]);
+  });
+});
+
 async function typeScriptRepoWithoutReadme(): Promise<string> {
   const root = await mkdtemp(path.join(tmpdir(), "slophammer-only-execute-"));
   await mkdir(path.join(root, ".github", "workflows"), { recursive: true });
@@ -146,7 +178,21 @@ async function typeScriptRepoWithoutReadme(): Promise<string> {
   return root;
 }
 
-async function mutationTypeScriptRepo(): Promise<string> {
+const disabledMutationConfig = [
+  "rules:",
+  "  ts.mutation-required:",
+  "    disabled: true",
+  "    reason: checked by another required job",
+  "typescript:",
+  "  mutation:",
+  "    enabled: true",
+  "    targets:",
+  "      - src"
+];
+
+async function mutationTypeScriptRepo(
+  configLines: readonly string[] = disabledMutationConfig
+): Promise<string> {
   const root = await tsgoOnlyTypeScriptRepo();
   await writeFile(
     path.join(root, "package.json"),
@@ -159,20 +205,7 @@ async function mutationTypeScriptRepo(): Promise<string> {
     path.join(root, ".github", "workflows", "ci.yml"),
     "name: CI\non: [push]\njobs:\n  check:\n    steps:\n      - run: npm run mutate\n"
   );
-  await writeFile(
-    path.join(root, "slophammer.yml"),
-    [
-      "rules:",
-      "  ts.mutation-required:",
-      "    disabled: true",
-      "    reason: checked by another required job",
-      "typescript:",
-      "  mutation:",
-      "    targets:",
-      "      - src",
-      ""
-    ].join("\n")
-  );
+  await writeFile(path.join(root, "slophammer.yml"), [...configLines, ""].join("\n"));
   return root;
 }
 
