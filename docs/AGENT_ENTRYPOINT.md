@@ -69,7 +69,7 @@ Action, which requires an exact version:
 - uses: osolmaz/slophammer@main
   with:
     checker: go
-    version: 0.4.0
+    version: 0.6.0
 ```
 
 For a Go target outside this source tree, install the current released checker:
