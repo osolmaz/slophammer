@@ -80,6 +80,9 @@ class DryConfig:
 
 @dataclass(frozen=True)
 class MutationConfig:
+    """Mutation testing is opt-in: py.mutation-required runs only when enabled."""
+
+    enabled: bool = False
     targets: list[str] = field(default_factory=list)
     exclude: list[ExcludeEntry] = field(default_factory=list)
 
@@ -244,8 +247,9 @@ def parse_mutation(value: object) -> MutationConfig | None:
     if value is None:
         return None
     section = as_mapping(value, "python.mutation")
-    assert_known_keys(section, "python.mutation", ("targets", "exclude"))
+    assert_known_keys(section, "python.mutation", ("enabled", "targets", "exclude"))
     return MutationConfig(
+        enabled=optional_bool(section.get("enabled"), "python.mutation.enabled"),
         targets=string_list(section.get("targets"), "python.mutation.targets"),
         exclude=exclude_entries(section.get("exclude"), "python.mutation.exclude"),
     )
@@ -404,7 +408,7 @@ IGNORED_SECTIONS: dict[str, dict[str, object]] = {
             "copied_blocks": {"enabled": None, "min_tokens": None},
         },
         "crap": {"max_score": None},
-        "mutation": {"targets": None, "exclude": EXCLUDES},
+        "mutation": {"enabled": None, "targets": None, "exclude": EXCLUDES},
         "dependency_boundaries": BOUNDARIES,
     },
     "typescript": {
@@ -416,7 +420,7 @@ IGNORED_SECTIONS: dict[str, dict[str, object]] = {
             "exclude": EXCLUDES,
             "copied_blocks": {"enabled": None, "min_tokens": None},
         },
-        "mutation": {"targets": None},
+        "mutation": {"enabled": None, "targets": None},
         "dependency_boundaries": BOUNDARIES,
     },
     "rust": {
@@ -431,7 +435,7 @@ IGNORED_SECTIONS: dict[str, dict[str, object]] = {
             "copied_blocks": {"enabled": None, "min_tokens": None},
         },
         "unsafe": {"policy": None, "allow": "<unsafe-allow>"},
-        "mutation": {"targets": None, "exclude": EXCLUDES},
+        "mutation": {"enabled": None, "targets": None, "exclude": EXCLUDES},
         "dependency_boundaries": BOUNDARIES,
     },
 }

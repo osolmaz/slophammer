@@ -1,4 +1,4 @@
-"""Rule selection, disablement, and severity for one check."""
+"""Rule selection, disablement, opt-in, and severity for one check."""
 
 from __future__ import annotations
 
@@ -6,6 +6,8 @@ from dataclasses import dataclass, replace
 
 from slophammer.config import Config
 from slophammer.core import Finding, Severity
+
+MUTATION_RULE_ID = "py.mutation-required"
 
 
 @dataclass(frozen=True)
@@ -32,8 +34,17 @@ class RulePolicy:
     def active(self, rule_id: str) -> bool:
         selected = self.selected is None or rule_id in self.selected
         rule = self.config.rules.get(rule_id)
-        enabled = not self.honor_disabled or rule is None or not rule.disabled
+        not_disabled = rule is None or not rule.disabled
+        enabled = not self.honor_disabled or (not_disabled and self.opted_in(rule_id))
         return selected and enabled
+
+    def opted_in(self, rule_id: str) -> bool:
+        """Mutation testing is opt-in: py.mutation-required stays off until
+        python.mutation.enabled is true. Every other rule is on by default."""
+        if rule_id != MUTATION_RULE_ID:
+            return True
+        python = self.config.python
+        return python is not None and python.mutation is not None and python.mutation.enabled
 
     def severity(self, rule_id: str, default: Severity) -> Severity:
         rule = self.config.rules.get(rule_id)

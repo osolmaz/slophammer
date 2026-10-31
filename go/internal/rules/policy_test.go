@@ -54,6 +54,35 @@ func TestPolicyDropsDisabledFindingsAndAppliesEnabledSeverity(t *testing.T) {
 	}
 }
 
+func TestPolicyKeepsMutationOffUntilOptedIn(t *testing.T) {
+	off := NewPolicy(config.Config{}, nil)
+	if off.Active(GoMutationRequiredRuleID) {
+		t.Fatal("mutation rule is active without go.mutation.enabled")
+	}
+	if !off.Active(GoCRAPRequiredRuleID) {
+		t.Fatal("non-opt-in rule is inactive without go.mutation.enabled")
+	}
+	targetsOnly := config.Config{Go: config.GoConfig{Mutation: config.MutationConfig{Targets: []string{"internal"}}}}
+	if NewPolicy(targetsOnly, []string{GoMutationRequiredRuleID}).Active(GoMutationRequiredRuleID) {
+		t.Fatal("mutation targets alone opted in, want go.mutation.enabled")
+	}
+	findings := off.AdmitAll([]Finding{{RuleID: GoMutationRequiredRuleID, Severity: SeverityError}})
+	if len(findings) != 0 {
+		t.Fatalf("findings = %#v, want mutation finding dropped", findings)
+	}
+
+	optedIn := config.Config{Go: config.GoConfig{Mutation: config.MutationConfig{Enabled: true}}}
+	if !NewPolicy(optedIn, nil).Active(GoMutationRequiredRuleID) {
+		t.Fatal("mutation rule is inactive with go.mutation.enabled")
+	}
+	optedIn.Rules = map[string]config.RuleConfig{
+		GoMutationRequiredRuleID: {Disabled: true, Reason: "checked by another job"},
+	}
+	if NewPolicy(optedIn, nil).Active(GoMutationRequiredRuleID) {
+		t.Fatal("disabled mutation rule is active after opt-in")
+	}
+}
+
 func TestRunWithPolicyDoesNotCallDisabledRule(t *testing.T) {
 	called := false
 	rule := countingRule{called: &called}

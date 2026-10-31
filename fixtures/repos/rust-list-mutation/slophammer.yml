@@ -15,6 +15,7 @@ rust:
   unsafe:
     policy: forbid
   mutation:
+    enabled: true
     targets:
       - src
   dependency_boundaries:

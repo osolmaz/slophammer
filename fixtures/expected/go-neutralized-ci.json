@@ -42,6 +42,12 @@
       "severity": "error",
       "path": ".github/workflows",
       "message": "Go projects must declare go vet ./... in CI or scripts"
+    },
+    {
+      "rule_id": "repo.slophammer-ci-required",
+      "severity": "error",
+      "path": ".github/workflows",
+      "message": "CI must run a Slophammer checker when slophammer.yml is present"
     }
   ]
 }

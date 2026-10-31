@@ -1,10 +1,11 @@
 """Rule-policy truth table and static admission tests."""
 
-from slophammer.config import Config, RuleConfig, parse_config
+from slophammer.config import Config, MutationConfig, PythonConfig, RuleConfig, parse_config
 from slophammer.core import Finding
 from slophammer.repo import new_snapshot
-from slophammer.rule_policy import RulePolicy
+from slophammer.rule_policy import MUTATION_RULE_ID, RulePolicy
 from slophammer.rules import run_rules
+from slophammer.rules.definitions import PY_MUTATION
 
 README_RULE = "repo.readme-required"
 
@@ -52,6 +53,46 @@ def test_disabled_static_rule_is_not_evaluated(monkeypatch) -> None:
 
     assert report.ok
     assert report.findings == []
+
+
+def mutation_config(mutation: MutationConfig | None) -> Config:
+    return Config(python=PythonConfig(mutation=mutation))
+
+
+def test_mutation_rule_is_off_until_opted_in() -> None:
+    assert MUTATION_RULE_ID == PY_MUTATION
+    assert not RulePolicy.for_check(Config()).active(PY_MUTATION)
+    assert not RulePolicy.for_check(Config(), [PY_MUTATION]).active(PY_MUTATION)
+    assert not RulePolicy.for_check(mutation_config(None)).active(PY_MUTATION)
+    targets_only = mutation_config(MutationConfig(targets=["src"]))
+    assert not RulePolicy.for_check(targets_only).active(PY_MUTATION)
+    assert RulePolicy.for_check(Config()).active("py.dry-required")
+    assert RulePolicy.for_check(Config()).admit_all([finding(PY_MUTATION)]) == []
+
+
+def test_mutation_rule_runs_after_opt_in() -> None:
+    config = mutation_config(MutationConfig(enabled=True))
+    assert RulePolicy.for_check(config).active(PY_MUTATION)
+    assert not RulePolicy.for_check(config, [README_RULE]).active(PY_MUTATION)
+
+
+def test_disablement_wins_over_mutation_opt_in() -> None:
+    config = Config(
+        rules={PY_MUTATION: RuleConfig(disabled=True, reason="checked elsewhere")},
+        python=PythonConfig(mutation=MutationConfig(enabled=True)),
+    )
+    assert not RulePolicy.for_check(config).active(PY_MUTATION)
+
+
+def test_direct_policy_ignores_mutation_opt_in() -> None:
+    assert RulePolicy.for_direct(Config(), [PY_MUTATION]).active(PY_MUTATION)
+
+
+def test_mutation_opt_in_parses_from_config() -> None:
+    enabled = parse_config("python:\n  mutation:\n    enabled: true\n").python
+    assert enabled is not None and enabled.mutation == MutationConfig(enabled=True)
+    default = parse_config("python:\n  mutation:\n    targets: [src]\n").python
+    assert default is not None and default.mutation == MutationConfig(targets=["src"])
 
 
 def finding(rule_id: str) -> Finding:

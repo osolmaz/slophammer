@@ -173,14 +173,16 @@ slophammer-rs unsafe [path] [--format json|text|sarif]
 ```
 
 When `slophammer.yml` defines policy values, the direct commands use them as
-defaults. Explicit CLI flags still win.
+defaults. Explicit CLI flags still win. Direct commands also run when the
+matching rule is off, so `slophammer-go mutate` works without the mutation
+opt-in described in [Configuration](#configuration).
 
 ### The Report
 
 The checker reports findings such as a missing `README.md`, `AGENTS.md`, or CI
 workflow; a missing test command, coverage gate, or linting setup; weak typing
-configuration; missing complexity, duplication, or mutation checks; and
-dependency imports that cross configured boundaries. The shared report model
+configuration; missing complexity or duplication checks; missing mutation
+checks when the repository opts in to mutation testing; and dependency imports that cross configured boundaries. The shared report model
 stays simple:
 
 ```json
@@ -221,14 +223,30 @@ existing repositories, `check --baseline` grandfathers current findings into a
 checked-in, shrink-only `slophammer-baseline.json`; see
 [Baseline](specs/BASELINE.md).
 
+Mutation testing is opt-in. A repository with no mutation setup passes, and
+the mutation rule for a language runs only when that language section sets
+`mutation.enabled: true`:
+
+```yaml
+go:
+  mutation:
+    enabled: true
+    targets:
+      - internal/rules
+```
+
+The same key works under `typescript`, `python`, and `rust`. After the opt-in,
+`check` requires an executing mutation step in CI, and `check --execute` runs
+the mutation gate. `mutation.targets` alone does not opt in.
+
 A project can disable a rule for `check` and `check --execute` only when it
 records a non-empty reason:
 
 ```yaml
 rules:
-  py.mutation-required:
+  rust.dependency-audit-required:
     disabled: true
-    reason: Mutation testing runs in a separate required release gate.
+    reason: Dependency audit runs in the organization-wide security workflow.
 ```
 
 A disabled rule does not run or produce a finding. Direct commands still run
@@ -245,7 +263,8 @@ for the full shape.
 The shared registry contains 62 implemented rules: 4 repository rules, 12 Go
 rules, 15 TypeScript rules, 16 Python rules, and 15 Rust rules. Each
 executable prints the rules it implements: repo rules plus its native
-language rules.
+language rules. The four rules marked "Opt-in" run only after the mutation
+opt-in described in [Configuration](#configuration).
 
 | Rule ID                             | Meaning                                                       |
 | ----------------------------------- | ------------------------------------------------------------- |
@@ -261,7 +280,7 @@ language rules.
 | `go.complexity-required`            | Go projects should check complexity.                          |
 | `go.dry-required`                   | Go projects should declare a DRY check.                       |
 | `go.crap-required`                  | Go projects should gate `crap4go`.                            |
-| `go.mutation-required`              | Go projects should declare `mutate4go`.                       |
+| `go.mutation-required`              | Opt-in: Go projects should declare `mutate4go`.               |
 | `go.dependency-boundaries-required` | Go projects should obey configured import boundaries.         |
 | `go.scope-incomplete`               | Configured Go scope must cover all production files.          |
 | `go.suppressions-justified`         | nolint directives in production Go code need a reason.        |
@@ -276,7 +295,7 @@ language rules.
 | `ts.coverage-required`              | TypeScript projects should enforce coverage.                  |
 | `ts.complexity-required`            | TypeScript projects should enforce complexity limits.         |
 | `ts.dry-required`                   | TypeScript projects should run duplication detection.         |
-| `ts.mutation-required`              | TypeScript projects should declare mutation testing.          |
+| `ts.mutation-required`              | Opt-in: TypeScript projects should declare mutation testing.  |
 | `ts.dependency-boundaries-required` | TypeScript projects should obey configured import boundaries. |
 | `ts.scope-incomplete`               | Configured TypeScript scope must cover all production files.  |
 | `ts.suppressions-justified`         | Lint and type suppressions need a description.                |
@@ -289,7 +308,7 @@ language rules.
 | `py.coverage-required` | Binding CI evidence must enforce coverage, via --cov-fail-under or a fail_under coverage configuration of at least the configured threshold. |
 | `py.complexity-required` | Complexity must be capped at the configured maximum. |
 | `py.dry-required` | Binding CI evidence must run a duplication check (slophammer-py dry). |
-| `py.mutation-required` | Binding CI evidence must declare a mutation testing tool. |
+| `py.mutation-required` | Opt-in: binding CI evidence must declare a mutation testing tool. |
 | `py.suppressions-justified` | Suppression directives in production Python code need a stated reason; bare # type: ignore without an error code is itself a finding. |
 | `py.dependency-audit-required` | Binding CI evidence must audit Python dependencies. |
 | `py.dependency-boundaries-required` | When python.dependency_boundaries is configured, imports crossing a boundary outside its allow list are findings. |
@@ -305,7 +324,7 @@ language rules.
 | `rust.coverage-required`            | Rust projects should enforce coverage.                        |
 | `rust.complexity-required`          | Rust projects should enforce complexity limits.               |
 | `rust.dry-required`                 | Rust projects should run duplication detection.               |
-| `rust.mutation-required`            | Rust projects should declare mutation testing.                |
+| `rust.mutation-required`            | Opt-in: Rust projects should declare mutation testing.        |
 | `rust.unsafe-policy-required`       | Rust projects should declare and respect unsafe policy.       |
 | `rust.dependency-audit-required`    | Rust projects should run dependency audit checks.             |
 | `rust.dependency-boundaries-required` | Rust projects should obey configured dependency boundaries. |

@@ -51,7 +51,7 @@ export function explain(ruleID: string): string | undefined {
 export function runRules(
   snapshot: Snapshot,
   cfg: Config,
-  policy: RulePolicy = new RulePolicy(cfg.rules)
+  policy: RulePolicy = new RulePolicy(cfg)
 ): Report {
   const findings = defaultRules()
     .filter((rule) => policy.active(rule.metadata().id))

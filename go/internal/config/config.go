@@ -76,7 +76,11 @@ func (e *ExcludeEntry) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
+// MutationConfig holds mutation-testing policy. Mutation testing is opt-in:
+// go.mutation-required runs only when Enabled is true, while targets and
+// excludes still drive a direct `slophammer-go mutate` run.
 type MutationConfig struct {
+	Enabled bool     `yaml:"enabled"`
 	Targets []string `yaml:"targets"`
 	Exclude []string `yaml:"exclude"`
 }
@@ -135,6 +139,7 @@ func (cfg *GoConfig) UnmarshalYAML(value *yaml.Node) error {
 		MaxScore float64 `yaml:"max_score"`
 	}
 	type mutationConfig struct {
+		Enabled bool           `yaml:"enabled"`
 		Targets []string       `yaml:"targets"`
 		Exclude []ExcludeEntry `yaml:"exclude"`
 	}
@@ -185,6 +190,7 @@ func (cfg *GoConfig) UnmarshalYAML(value *yaml.Node) error {
 	}
 	cfg.CRAPMaxScore = parsed.CRAP.MaxScore
 	cfg.Mutation = MutationConfig{
+		Enabled: parsed.Mutation.Enabled,
 		Targets: parsed.Mutation.Targets,
 		Exclude: excludePatterns(parsed.Mutation.Exclude),
 	}
@@ -410,7 +416,7 @@ func validatePythonSection(key string, value *yaml.Node) error {
 	case "complexity":
 		return validateMappingKeys(value, "python.complexity", set("max"), nil)
 	case "mutation":
-		return validateSectionSequenceKey(value, "python.mutation", set("targets", "exclude"), "exclude", validateExcludeEntryKeys)
+		return validateSectionSequenceKey(value, "python.mutation", set("enabled", "targets", "exclude"), "exclude", validateExcludeEntryKeys)
 	case "dry":
 		return validateCopiedBlockDryKeys(value, "python.dry")
 	case "dependency_boundaries":
@@ -471,7 +477,7 @@ func validateGoKeys(node *yaml.Node) error {
 }
 
 func validateGoMutationKeys(node *yaml.Node) error {
-	return validateSectionSequenceKey(node, "go.mutation", set("targets", "exclude"), "exclude", validateExcludeEntryKeys)
+	return validateSectionSequenceKey(node, "go.mutation", set("enabled", "targets", "exclude"), "exclude", validateExcludeEntryKeys)
 }
 
 // validateSectionSequenceKey validates a mapping section whose keys are
@@ -527,7 +533,7 @@ func validateTypeScriptSection(key string, value *yaml.Node) error {
 	case "complexity":
 		return validateMappingKeys(value, "typescript.complexity", set("max"), nil)
 	case "mutation":
-		return validateMappingKeys(value, "typescript.mutation", set("targets"), nil)
+		return validateMappingKeys(value, "typescript.mutation", set("enabled", "targets"), nil)
 	case "dry":
 		return validateCopiedBlockDryKeys(value, "typescript.dry")
 	case "dependency_boundaries":
@@ -579,7 +585,7 @@ func validateRustKeys(node *yaml.Node) error {
 			case "unsafe":
 				return validateRustUnsafeKeys(value)
 			case "mutation":
-				return validateMappingKeys(value, "rust.mutation", set("targets", "exclude"), nil)
+				return validateMappingKeys(value, "rust.mutation", set("enabled", "targets", "exclude"), nil)
 			case "dependency_boundaries":
 				return validateDependencyBoundaryKeys(value, "rust.dependency_boundaries")
 			default:

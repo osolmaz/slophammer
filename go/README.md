@@ -74,7 +74,7 @@ go test ./...
 ./scripts/check-go-install.sh
 go run ./cmd/slophammer-go dry ..
 go run ./cmd/slophammer-go crap ..
-go run ./cmd/slophammer-go mutate .. --scan
+go run ./cmd/slophammer-go mutate ..
 go build ./cmd/slophammer
 go build ./cmd/slophammer-go
 go run ./cmd/slophammer-go check ..
@@ -85,6 +85,9 @@ The direct `go dry`, `go crap`, and `go mutate` commands read
 `slophammer.yml` from the target path and use its Go policy values as defaults
 when the matching CLI flag is not provided. `check --execute` runs configured
 Go tool checks and reports failures through the normal Slophammer report model.
+Mutation testing is opt-in: `check` and `check --execute` require and run the
+mutation gate only when `go.mutation.enabled` is `true`, while `go mutate`
+runs whenever someone calls it.
 
 Public packaging exposes those as `slophammer-go dry`, `slophammer-go crap`,
 and `slophammer-go mutate`. The nested `go ...` source commands remain

@@ -3,3 +3,5 @@ python:
     threshold: 85
     paths:
       - src
+  mutation:
+    enabled: true

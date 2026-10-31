@@ -1,8 +1,9 @@
 use crate::config::Config;
 use crate::core::{Finding, Severity};
+use crate::rust_rules::rule_ids::RUST_MUTATION_REQUIRED;
 use std::collections::BTreeSet;
 
-/// Owns rule selection, disablement, and effective severity for one check.
+/// Owns rule selection, disablement, opt-in, and effective severity for one check.
 pub struct RulePolicy<'a> {
     config: &'a Config,
     selected: Option<BTreeSet<String>>,
@@ -32,12 +33,26 @@ impl<'a> RulePolicy<'a> {
             .as_ref()
             .is_none_or(|selected| selected.contains(rule_id));
         let enabled = !self.honor_disabled
-            || self
+            || (self
                 .config
                 .rules
                 .get(rule_id)
-                .is_none_or(|rule| !rule.disabled);
+                .is_none_or(|rule| !rule.disabled)
+                && self.opted_in(rule_id));
         selected && enabled
+    }
+
+    /// Mutation testing is opt-in: `rust.mutation-required` and its execute
+    /// step stay off until `rust.mutation.enabled` is true. Every other rule
+    /// is on by default.
+    fn opted_in(&self, rule_id: &str) -> bool {
+        rule_id != RUST_MUTATION_REQUIRED
+            || self
+                .config
+                .rust
+                .as_ref()
+                .and_then(|rust| rust.mutation.as_ref())
+                .is_some_and(|mutation| mutation.enabled)
     }
 
     pub fn severity(&self, rule_id: &str, fallback: Severity) -> Severity {
@@ -121,6 +136,44 @@ mod tests {
         assert_eq!(admitted.len(), 1);
         assert_eq!(admitted[0].rule_id, "repo.agents-required");
         assert_eq!(admitted[0].severity, Severity::Warn);
+    }
+
+    #[test]
+    fn mutation_stays_off_until_opted_in() {
+        let mutation = [RUST_MUTATION_REQUIRED.to_owned()];
+        assert!(!RulePolicy::for_check(&Config::default(), &[]).active(RUST_MUTATION_REQUIRED));
+        assert!(
+            !RulePolicy::for_check(&Config::default(), &mutation).active(RUST_MUTATION_REQUIRED)
+        );
+        assert!(RulePolicy::for_check(&Config::default(), &[]).active("rust.dry-required"));
+        let targets_only =
+            crate::config::parse("rust:\n  mutation:\n    targets: [src]\n").expect("config");
+        assert!(!RulePolicy::for_check(&targets_only, &[]).active(RUST_MUTATION_REQUIRED));
+        assert!(
+            RulePolicy::for_check(&Config::default(), &[])
+                .admit_all(vec![finding(RUST_MUTATION_REQUIRED)])
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn mutation_runs_after_opt_in_unless_disabled() {
+        let opted_in =
+            crate::config::parse("rust:\n  mutation:\n    enabled: true\n").expect("config");
+        assert!(RulePolicy::for_check(&opted_in, &[]).active(RUST_MUTATION_REQUIRED));
+        let disabled = crate::config::parse(
+            "rules:\n  rust.mutation-required:\n    disabled: true\n    reason: checked elsewhere\nrust:\n  mutation:\n    enabled: true\n",
+        )
+        .expect("config");
+        assert!(!RulePolicy::for_check(&disabled, &[]).active(RUST_MUTATION_REQUIRED));
+    }
+
+    #[test]
+    fn direct_policy_ignores_mutation_opt_in() {
+        let mutation = [RUST_MUTATION_REQUIRED.to_owned()];
+        assert!(
+            RulePolicy::for_direct(&Config::default(), &mutation).active(RUST_MUTATION_REQUIRED)
+        );
     }
 
     fn config_with_rules<const N: usize>(rules: [(&str, RuleConfig); N]) -> Config {

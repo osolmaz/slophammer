@@ -43,6 +43,7 @@ go:
   crap:
     max_score: 8
   mutation:
+    enabled: true
     targets:
       - internal/rules
     exclude:
@@ -98,6 +99,9 @@ func assertParsedDryPaths(t *testing.T, cfg Config) {
 
 func assertParsedMutation(t *testing.T, cfg Config) {
 	t.Helper()
+	if !cfg.Go.Mutation.Enabled {
+		t.Fatal("Mutation.Enabled = false, want true")
+	}
 	if !reflect.DeepEqual(cfg.Go.Mutation.Targets, []string{"internal/rules"}) {
 		t.Fatalf("Mutation.Targets = %#v", cfg.Go.Mutation.Targets)
 	}
@@ -110,6 +114,40 @@ func assertParsedDependencyBoundaries(t *testing.T, cfg Config) {
 	t.Helper()
 	if len(cfg.Go.DependencyBoundaries) != 1 || cfg.Go.DependencyBoundaries[0].From != "internal/repo" {
 		t.Fatalf("DependencyBoundaries = %#v", cfg.Go.DependencyBoundaries)
+	}
+}
+
+func TestMutationIsOffByDefault(t *testing.T) {
+	cfg, err := Load(repo.NewSnapshot("/repo", map[string]repo.File{
+		"slophammer.yml": {
+			Path: "slophammer.yml",
+			Content: `go:
+  mutation:
+    targets:
+      - internal/rules
+`,
+		},
+	}))
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	if cfg.Go.Mutation.Enabled {
+		t.Fatal("Mutation.Enabled = true without go.mutation.enabled, want false")
+	}
+	if !reflect.DeepEqual(cfg.Go.Mutation.Targets, []string{"internal/rules"}) {
+		t.Fatalf("Mutation.Targets = %#v", cfg.Go.Mutation.Targets)
+	}
+}
+
+func TestLoadRejectsNonBooleanMutationEnabled(t *testing.T) {
+	_, err := Load(repo.NewSnapshot("/repo", map[string]repo.File{
+		"slophammer.yml": {
+			Path:    "slophammer.yml",
+			Content: "go:\n  mutation:\n    enabled: sometimes\n",
+		},
+	}))
+	if err == nil {
+		t.Fatal("Load accepted a non-boolean go.mutation.enabled")
 	}
 }
 
@@ -722,6 +760,10 @@ typescript:
     copied_blocks:
       enabled: true
       min_tokens: 100
+  mutation:
+    enabled: true
+    targets:
+      - typescript/src/rules/rules.ts
 python:
   coverage:
     threshold: 85
@@ -737,6 +779,7 @@ python:
       enabled: true
       min_tokens: 100
   mutation:
+    enabled: true
     targets:
       - python/src
   dependency_boundaries:
@@ -770,6 +813,7 @@ rust:
       - path: src/lib.rs
         reason: reviewed
   mutation:
+    enabled: true
     targets:
       - rust/crates/slophammer-cli/src/rust_rules
   dependency_boundaries:

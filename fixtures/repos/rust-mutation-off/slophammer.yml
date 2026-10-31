@@ -1,7 +1,3 @@
-rules:
-  rust.mutation-required:
-    disabled: true
-    reason: checked by another required job
 rust:
   coverage:
     threshold: 85

@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
+import { emptyConfig, type Config } from "../src/config/config.js";
 import type { Finding, Report } from "../src/rules/types.js";
 
 export const repoRoot = path.resolve(import.meta.dirname, "../..");
@@ -84,4 +85,14 @@ function asRecord(value: unknown): Readonly<Record<string, unknown>> {
 
 function asString(value: unknown): string {
   return typeof value === "string" ? value : "";
+}
+
+// mutationOptInConfig is the config of a repository that sets
+// typescript.mutation.enabled, the opt-in that arms ts.mutation-required.
+export function mutationOptInConfig(): Config {
+  const config = emptyConfig();
+  return {
+    ...config,
+    typescript: { ...config.typescript, mutation: { enabled: true, targets: [] } }
+  };
 }

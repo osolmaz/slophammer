@@ -145,7 +145,7 @@ pub fn default_definitions() -> Vec<RuleDefinition> {
             "Rust mutation check required",
             ".github/workflows",
             "Rust projects must declare mutation testing",
-            "Rust projects should declare mutation testing, normally through cargo-mutants.",
+            "Opt-in: this rule runs only when slophammer.yml sets rust.mutation.enabled: true. Rust projects that opt in should declare mutation testing, normally through cargo-mutants. Only executing invocations count: list, scan, check, dry-run, and manifest-only forms cannot fail on a surviving mutant and are not evidence.",
             Some("cargo mutants"),
         ),
         rust_definition(
@@ -376,7 +376,7 @@ static RUST_MUTATION_REQUIRED: RuleDefinition = RuleDefinition {
     severity: Severity::Error,
     path: ".github/workflows",
     message: "Rust projects must declare mutation testing",
-    description: "Rust projects should declare mutation testing, normally through cargo-mutants. Only executing invocations count: list, scan, check, dry-run, and manifest-only forms cannot fail on a surviving mutant and are not evidence.",
+    description: "Opt-in: this rule runs only when slophammer.yml sets rust.mutation.enabled: true. Rust projects that opt in should declare mutation testing, normally through cargo-mutants. Only executing invocations count: list, scan, check, dry-run, and manifest-only forms cannot fail on a surviving mutant and are not evidence.",
     tool: Some("cargo mutants"),
     status: "implemented",
 };

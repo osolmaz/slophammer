@@ -51,7 +51,7 @@ function configuredScopePaths(cfg: Config): readonly string[] {
   return [
     ...cfg.typescript.dry.paths,
     ...cfg.typescript.coverage.paths,
-    ...cfg.typescript.mutationTargets
+    ...cfg.typescript.mutation.targets
   ];
 }
 

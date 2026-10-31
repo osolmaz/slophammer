@@ -18,7 +18,7 @@ const repoFixtures = [
 const goFixtures = [
   ...repoFixtures,
   "go-clean",
-  "go-disabled-mutation",
+  "go-mutation-off",
   "go-bad-dependency",
   "go-bare-suppression",
   "go-carved-scope",
@@ -38,7 +38,7 @@ const goFixtures = [
 const typeScriptFixtures = [
   ...repoFixtures,
   "typescript-clean",
-  "typescript-disabled-mutation",
+  "typescript-mutation-off",
   "typescript-bad-dependency",
   "typescript-bare-suppression",
   "typescript-carved-scope",
@@ -64,7 +64,7 @@ const typeScriptFixtures = [
 const rustFixtures = [
   ...repoFixtures,
   "rust-clean",
-  "rust-disabled-mutation",
+  "rust-mutation-off",
   "rust-bad-dependency",
   "rust-bare-suppression",
   "rust-carved-scope",
@@ -85,7 +85,7 @@ const rustFixtures = [
 const pythonFixtures = [
   ...repoFixtures,
   "python-clean",
-  "python-disabled-mutation",
+  "python-mutation-off",
   "python-bad-dependency",
   "python-bare-suppression",
   "python-carved-scope",

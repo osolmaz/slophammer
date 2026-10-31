@@ -62,6 +62,13 @@ Start mutation testing on:
 Do not begin by mutating the entire repo if the suite is large. Start with the
 highest-risk files and expand from there.
 
+## Turning It On
+
+Slophammer treats mutation testing as opt-in. A repository turns it on per
+language with `mutation.enabled: true` in `slophammer.yml`, for example under
+`go:` or `rust:`. Only then do the `*.mutation-required` rules ask CI for an
+executing mutation step. See [Config](../specs/CONFIG.md#mutation-opt-in).
+
 ## Useful Metrics
 
 Track:

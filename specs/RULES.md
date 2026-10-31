@@ -34,6 +34,13 @@ through `make`, `task`, or `just`), following script-to-script references one
 level deep. `package.json` scripts count only when invoked by name from
 binding evidence, with one level of chained run-script references.
 
+The four mutation rules (`go.mutation-required`, `ts.mutation-required`,
+`py.mutation-required`, and `rust.mutation-required`) are opt-in. Each runs
+only when its language section in `slophammer.yml` sets
+`mutation.enabled: true`; see [Config](CONFIG.md#mutation-opt-in). Without the
+opt-in, `check` reports no mutation finding and `check --execute` runs no
+mutation step.
+
 Mutation evidence must be able to fail: list, scan, check, dry-run, and
 manifest-only forms (`cargo mutants --list`, `cargo mutants --check`,
 `mutate --scan`, `mutate --update-manifest`, `stryker --dryRunOnly`,
@@ -245,7 +252,9 @@ Slophammer checks for an inspectable declaration and threshold. It does not run
 
 ### `go.mutation-required`
 
-Go projects should declare `mutate4go` in an inspectable workflow or script.
+This rule is opt-in: it runs only when `go.mutation.enabled` is `true`. Go
+projects that opt in should declare `mutate4go` in an inspectable workflow or
+script.
 
 The mutation command may live in a normal CI workflow, nightly workflow, manual
 workflow, or script. Slophammer checks for a declaration in static mode.
@@ -371,8 +380,10 @@ duplicate detection.
 
 ### `rust.mutation-required`
 
-Rust projects should declare mutation testing, normally through `cargo-mutants`.
-The mutation command may live in normal CI, nightly CI, manual CI, or scripts.
+This rule is opt-in: it runs only when `rust.mutation.enabled` is `true`. Rust
+projects that opt in should declare mutation testing, normally through
+`cargo-mutants`. The mutation command may live in normal CI, nightly CI, manual
+CI, or scripts.
 
 ### `rust.unsafe-policy-required`
 
@@ -394,8 +405,9 @@ ignored by this rule.
 
 ### `ts.mutation-required`
 
-TypeScript projects should declare TypeScript mutation testing, normally through
-StrykerJS. Go mutation commands do not satisfy this rule.
+This rule is opt-in: it runs only when `typescript.mutation.enabled` is `true`.
+TypeScript projects that opt in should declare TypeScript mutation testing,
+normally through StrykerJS. Go mutation commands do not satisfy this rule.
 
 ### `ts.dependency-boundaries-required`
 

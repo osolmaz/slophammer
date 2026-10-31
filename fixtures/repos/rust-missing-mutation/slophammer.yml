@@ -10,6 +10,8 @@ rust:
       min_tokens: 100
   unsafe:
     policy: forbid
+  mutation:
+    enabled: true
   dependency_boundaries:
     - from: .
       allow: []

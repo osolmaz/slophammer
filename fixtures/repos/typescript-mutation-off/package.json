@@ -1,5 +1,5 @@
 {
-  "name": "typescript-missing-mutation-fixture",
+  "name": "typescript-mutation-off-fixture",
   "private": true,
   "type": "module",
   "scripts": {

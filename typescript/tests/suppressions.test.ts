@@ -129,7 +129,7 @@ function suppressionFindings(content: string): readonly Finding[] {
 
 function runSuppressionRules(snapshot: Snapshot): ReturnType<typeof runRules> {
   const config = emptyConfig();
-  return runRules(snapshot, config, new RulePolicy(config.rules, [ruleID]));
+  return runRules(snapshot, config, new RulePolicy(config, [ruleID]));
 }
 
 function typeScriptProjectMarkers(): readonly {

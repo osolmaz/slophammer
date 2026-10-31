@@ -78,7 +78,7 @@ describe("ts.scope-incomplete", () => {
 });
 
 function runScope(target: Snapshot, cfg: Config): ReturnType<typeof runRules> {
-  return runRules(target, cfg, new RulePolicy(cfg.rules, [ruleID]));
+  return runRules(target, cfg, new RulePolicy(cfg, [ruleID]));
 }
 
 function snapshot(...extraPaths: readonly string[]): Snapshot {

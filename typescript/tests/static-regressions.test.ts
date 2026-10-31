@@ -5,7 +5,7 @@ import { emptyConfig } from "../src/config/config.js";
 import { newSnapshot, type Snapshot } from "../src/repo/repo.js";
 import { RulePolicy } from "../src/rules/policy.js";
 import { runRules } from "../src/rules/rules.js";
-import { bindingScriptWorkflow } from "./helpers.js";
+import { bindingScriptWorkflow, mutationOptInConfig } from "./helpers.js";
 
 describe("TypeScript static rule regressions", () => {
   it("does not accept npm test wrappers without a real package test runner", () => {
@@ -225,7 +225,7 @@ describe("TypeScript mutation evidence regressions", () => {
         }),
         enabledESLintConfig()
       ]),
-      emptyConfig()
+      mutationOptInConfig()
     );
 
     expect(report.findings.map((finding) => finding.rule_id)).toContain("ts.mutation-required");
@@ -238,7 +238,7 @@ describe("TypeScript mutation evidence regressions", () => {
         packageWithScripts({ mutate: "stryker run --dryRunOnly" }),
         enabledESLintConfig()
       ]),
-      emptyConfig()
+      mutationOptInConfig()
     );
 
     expect(report.findings.map((finding) => finding.rule_id)).toContain("ts.mutation-required");
@@ -251,7 +251,7 @@ describe("TypeScript mutation evidence regressions", () => {
         packageWithScripts({ mutate: "stryker run --dryRunTimeoutMinutes 10" }),
         enabledESLintConfig()
       ]),
-      emptyConfig()
+      mutationOptInConfig()
     );
 
     expect(report.findings.map((finding) => finding.rule_id)).not.toContain("ts.mutation-required");
@@ -268,7 +268,7 @@ describe("TypeScript mutation evidence regressions", () => {
         packageWithScripts({ mutate: "stryker run" }),
         enabledESLintConfig()
       ]),
-      emptyConfig()
+      mutationOptInConfig()
     );
 
     expect(report.findings.map((finding) => finding.rule_id)).toContain("ts.mutation-required");
@@ -295,7 +295,7 @@ describe("TypeScript mutation threshold regressions", () => {
           packageWithScripts({ mutate: "stryker run" }),
           enabledESLintConfig()
         ]),
-        emptyConfig()
+        mutationOptInConfig()
       );
 
       expect(report.findings.map((finding) => finding.rule_id)).toContain("ts.mutation-required");
@@ -313,7 +313,7 @@ describe("TypeScript mutation threshold regressions", () => {
         packageWithScripts({ mutate: "stryker run" }),
         enabledESLintConfig()
       ]),
-      emptyConfig()
+      mutationOptInConfig()
     );
 
     expect(report.findings.map((finding) => finding.rule_id)).toContain("ts.mutation-required");
@@ -330,7 +330,7 @@ describe("TypeScript mutation threshold regressions", () => {
         packageWithScripts({ mutate: "stryker run config/stryker.conf.json" }),
         enabledESLintConfig()
       ]),
-      emptyConfig()
+      mutationOptInConfig()
     );
 
     expect(report.findings.map((finding) => finding.rule_id)).not.toContain("ts.mutation-required");
@@ -344,7 +344,7 @@ describe("TypeScript mutation threshold regressions", () => {
         packageWithScripts({ mutate: "stryker run config/stryker.conf.json" }),
         enabledESLintConfig()
       ]),
-      emptyConfig()
+      mutationOptInConfig()
     );
 
     expect(report.findings.map((finding) => finding.rule_id)).toContain("ts.mutation-required");
@@ -361,7 +361,7 @@ describe("TypeScript mutation threshold regressions", () => {
         packageWithScripts({ mutate: "stryker run" }),
         enabledESLintConfig()
       ]),
-      emptyConfig()
+      mutationOptInConfig()
     );
 
     expect(report.findings.map((finding) => finding.rule_id)).not.toContain("ts.mutation-required");
@@ -374,7 +374,7 @@ describe("TypeScript mutation threshold regressions", () => {
         packageWithScripts({ mutate: "stryker run" }),
         enabledESLintConfig()
       ]),
-      emptyConfig()
+      mutationOptInConfig()
     );
 
     expect(report.findings.map((finding) => finding.rule_id)).toContain("ts.mutation-required");
@@ -388,7 +388,7 @@ describe("TypeScript mutation threshold regressions", () => {
           packageWithScripts({ mutate: weak }),
           enabledESLintConfig()
         ]),
-        emptyConfig()
+        mutationOptInConfig()
       );
 
       expect(report.findings.map((finding) => finding.rule_id)).toContain("ts.mutation-required");
@@ -402,10 +402,25 @@ describe("TypeScript mutation threshold regressions", () => {
         packageWithScripts({ mutate: "stryker run || true" }),
         enabledESLintConfig()
       ]),
-      emptyConfig()
+      mutationOptInConfig()
     );
 
     expect(report.findings.map((finding) => finding.rule_id)).toContain("ts.mutation-required");
+  });
+});
+
+describe("TypeScript mutation opt-in", () => {
+  it("does not require mutation testing without typescript.mutation.enabled", () => {
+    const files = [
+      ...baseTypeScriptFiles(),
+      packageWithScripts({ mutate: "echo no mutation testing" }),
+      enabledESLintConfig()
+    ];
+    const ruleIDs = (cfg: Config): readonly string[] =>
+      runRules(newSnapshot("/repo", files), cfg).findings.map((finding) => finding.rule_id);
+
+    expect(ruleIDs(emptyConfig())).not.toContain("ts.mutation-required");
+    expect(ruleIDs(mutationOptInConfig())).toContain("ts.mutation-required");
   });
 });
 
@@ -461,7 +476,7 @@ describe("TypeScript command failure regressions", () => {
 
 function runOnly(snapshot: Snapshot, ruleID: string): ReturnType<typeof runRules> {
   const config = emptyConfig();
-  return runRules(snapshot, config, new RulePolicy(config.rules, [ruleID]));
+  return runRules(snapshot, config, new RulePolicy(config, [ruleID]));
 }
 
 function baseTypeScriptFiles(): readonly { readonly path: string; readonly content: string }[] {

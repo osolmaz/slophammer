@@ -43,14 +43,14 @@ export async function check(
 async function checkWithPolicy(
   options: CheckOptions,
   runner: Runner,
-  honorDisabled: boolean
+  honorConfig: boolean
 ): Promise<{ readonly code: number; readonly stdout: string; readonly stderr: string }> {
   try {
     const onlyRuleIDs = options.onlyRuleIDs ?? [];
     validateOnlyRuleIDs(onlyRuleIDs);
     const snapshot = await scanRepo(options.root);
     const cfg = loadConfig(snapshot);
-    const policy = new RulePolicy(cfg.rules, onlyRuleIDs, honorDisabled);
+    const policy = new RulePolicy(cfg, onlyRuleIDs, honorConfig);
     const base = runRules(snapshot, cfg, policy);
     const findings =
       options.execute && shouldExecuteTypeScriptChecks(policy)

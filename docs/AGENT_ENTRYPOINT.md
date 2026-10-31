@@ -190,13 +190,10 @@ go:
       min_tokens: 100
   crap:
     max_score: 8
-  mutation:
-    targets:
-      - go/internal/rules
 ```
 
-Adjust `go.targets`, `go.exclude`, `go.dry.paths`, `go.dry.exclude`, and
-`go.mutation.targets` to match the target repository.
+Adjust `go.targets`, `go.exclude`, `go.dry.paths`, and `go.dry.exclude` to
+match the target repository.
 
 These are hard quality targets:
 
@@ -226,16 +223,38 @@ rust:
       min_tokens: 100
   unsafe:
     policy: forbid
-  mutation:
-    targets:
-      - src
   dependency_boundaries:
     - from: .
       allow: []
 ```
 
-Adjust `rust.targets`, `rust.dry.paths`, `rust.mutation.targets`, and
-`rust.dependency_boundaries` to match the target repository.
+Adjust `rust.targets`, `rust.dry.paths`, and `rust.dependency_boundaries` to
+match the target repository.
+
+### Optional Mutation Testing
+
+Mutation testing is opt-in. Leave it out unless the repository owner asks for
+it: a repository with no mutation setup passes, and you do not need a
+`rules:` entry to turn the mutation rule off.
+
+To opt in, set `mutation.enabled: true` in the language section and name the
+risky files to mutate:
+
+```yaml
+go:
+  mutation:
+    enabled: true
+    targets:
+      - go/internal/rules
+rust:
+  mutation:
+    enabled: true
+    targets:
+      - src
+```
+
+The same key works under `typescript` and `python`. After the opt-in, CI must
+run an executing mutation step, as the CI contract below shows.
 
 ## CI Contract
 
@@ -250,10 +269,19 @@ golangci-lint run
 go build ./cmd/<binary>
 slophammer-go dry .
 slophammer-go crap .
-slophammer-go mutate . --scan
 slophammer-go check .
 slophammer-go check . --execute
 ```
+
+When the repository sets `go.mutation.enabled: true`, also run the executing
+mutation gate:
+
+```sh
+slophammer-go mutate .
+```
+
+`slophammer-go mutate . --scan` only counts mutation sites, so it does not
+satisfy `go.mutation-required`.
 
 Adapt the build path to the target repo. When working inside this repository's
 source tree, `go run ./cmd/slophammer-go ...` is the local development
@@ -289,6 +317,18 @@ slophammer-rs check .
 Use `cargo deny` instead of or in addition to `cargo audit` when the repository
 needs license, source, or banned-dependency policy.
 
+When the repository sets `rust.mutation.enabled: true`, also run an executing
+mutation step, such as:
+
+```sh
+cargo mutants --workspace
+```
+
+`cargo mutants --list` and `cargo mutants --check` do not run any mutant, so
+they do not satisfy `rust.mutation-required`. For TypeScript, run `stryker run`
+with a positive `thresholds.break`. For Python, run mutmut or cosmic-ray behind
+a kill-rate gate such as `--min-kill-rate`.
+
 ## Language Baselines
 
 For TypeScript:
@@ -312,7 +352,8 @@ For Rust:
 - run `cargo check`, `cargo fmt --check`, `cargo clippy`, and `cargo test`
 - deny Clippy warnings in CI
 - keep unsafe code forbidden unless a narrow allow entry has a reason
-- declare dependency audit, mutation, DRY, and dependency-boundary gates
+- declare dependency audit, DRY, and dependency-boundary gates
+- declare mutation testing only when the repository opts in
 - run tests in CI
 
 For Go:
@@ -323,7 +364,7 @@ For Go:
 - enforce coverage
 - enforce CRAP
 - run DRY detection on production code
-- run mutation checks on risky target files
+- run mutation checks on risky target files when the repository opts in
 - keep interfaces near consumers
 - keep package APIs small and explicit
 
@@ -356,7 +397,7 @@ golangci-lint run
 ./scripts/check-go-coverage.sh
 go run ./cmd/slophammer-go dry ..
 go run ./cmd/slophammer-go crap ..
-go run ./cmd/slophammer-go mutate .. --scan
+go run ./cmd/slophammer-go mutate ..
 go run ./cmd/slophammer-go check .. --execute
 ./scripts/check-go-install.sh
 node ../scripts/check-conformance.mjs

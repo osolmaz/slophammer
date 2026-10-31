@@ -1,4 +1,0 @@
-rules:
-  go.mutation-required:
-    disabled: true
-    reason: checked by another required job

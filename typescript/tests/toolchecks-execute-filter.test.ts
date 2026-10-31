@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { emptyConfig, type Config } from "../src/config/config.js";
 import { RulePolicy } from "../src/rules/policy.js";
 import {
   executeTypeScriptChecks,
@@ -59,7 +60,12 @@ describe("executeTypeScriptChecks filtering", () => {
       "ts.mutation-required"
     ];
     const policy = new RulePolicy(
-      new Map(ruleIDs.map((ruleID) => [ruleID, { disabled: true, reason: "checked elsewhere" }])),
+      {
+        ...mutationOptIn(),
+        rules: new Map(
+          ruleIDs.map((ruleID) => [ruleID, { disabled: true, reason: "checked elsewhere" }])
+        )
+      },
       []
     );
 
@@ -141,8 +147,46 @@ describe("executeTypeScriptChecks filtering", () => {
   });
 });
 
+describe("executeTypeScriptChecks mutation opt-in", () => {
+  it("does not run the mutate script without typescript.mutation.enabled", async () => {
+    const root = await packageFixture({ mutate: "stryker run" });
+    const calls: string[] = [];
+    const runner = recordingRunner(calls);
+
+    const findings = await executeTypeScriptChecks(
+      root,
+      runner,
+      root,
+      only("ts.mutation-required")
+    );
+
+    expect(findings).toEqual([]);
+    expect(calls).toEqual([]);
+  });
+
+  it("runs the mutate script after typescript.mutation.enabled", async () => {
+    const root = await packageFixture({ mutate: "stryker run" });
+    const calls: string[] = [];
+    const runner = recordingRunner(calls);
+    const policy = new RulePolicy(mutationOptIn(), ["ts.mutation-required"]);
+
+    const findings = await executeTypeScriptChecks(root, runner, root, policy);
+
+    expect(findings).toEqual([]);
+    expect(calls).toEqual(["npm run mutate"]);
+  });
+});
+
 function only(...ruleIDs: readonly string[]): RulePolicy {
-  return new RulePolicy(new Map(), ruleIDs);
+  return RulePolicy.defaults(ruleIDs);
+}
+
+function mutationOptIn(): Config {
+  const config = emptyConfig();
+  return {
+    ...config,
+    typescript: { ...config.typescript, mutation: { enabled: true, targets: [] } }
+  };
 }
 
 function recordingRunner(calls: string[]): Runner {

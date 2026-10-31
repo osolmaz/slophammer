@@ -44,6 +44,11 @@ max-complexity = 8
 """
 
 
+# The clean repo opts in to mutation testing so the mutation-evidence tests
+# exercise py.mutation-required; TestMutationOptIn covers the default.
+OPTED_IN_CONFIG = "python:\n  coverage:\n    threshold: 85\n  mutation:\n    enabled: true\n"
+
+
 def clean_python_repo(overrides: dict[str, str] | None = None) -> dict[str, str]:
     files = {
         "README.md": "# Demo\n",
@@ -55,7 +60,7 @@ def clean_python_repo(overrides: dict[str, str] | None = None) -> dict[str, str]
         "ty.toml": STRICT_TY_TOML,
         "src/demo/__init__.py": "",
         "src/demo/main.py": "def run() -> int:\n    return 0\n",
-        "slophammer.yml": "python:\n  coverage:\n    threshold: 85\n",
+        "slophammer.yml": OPTED_IN_CONFIG,
     }
     files.update(overrides or {})
     return files
@@ -156,6 +161,43 @@ class TestRepoRules:
         assert ids == []
 
 
+class TestMutationOptIn:
+    @staticmethod
+    def repo_without_mutation(config: str) -> dict[str, str]:
+        steps = "\n".join(
+            line
+            for line in GATE_STEPS.split("\n")
+            if "mutmut" not in line and "mutation" not in line
+        )
+        return clean_python_repo(
+            {
+                ".github/workflows/ci.yml": (
+                    f"name: CI\non: [push]\njobs:\n  check:\n    steps:\n{steps}\n"
+                ),
+                "slophammer.yml": config,
+            }
+        )
+
+    def test_repo_without_mutation_passes_by_default(self):
+        files = self.repo_without_mutation("python:\n  coverage:\n    threshold: 85\n")
+        report = report_for(files)
+        assert report.findings == []
+        assert rule_ids(report_for(files, only=["py.mutation-required"])) == []
+
+    def test_mutation_targets_alone_do_not_opt_in(self):
+        files = self.repo_without_mutation(
+            "python:\n  coverage:\n    threshold: 85\n  mutation:\n    targets: [src]\n"
+        )
+        assert rule_ids(report_for(files, only=["py.mutation-required"])) == []
+
+    def test_enabled_mutation_requires_mutation_evidence(self):
+        files = self.repo_without_mutation(OPTED_IN_CONFIG)
+        assert rule_ids(report_for(files)) == ["py.mutation-required"]
+
+    def test_explain_states_the_opt_in(self):
+        assert "python.mutation.enabled: true" in (explain("py.mutation-required") or "")
+
+
 class TestGateRules:
     def test_disabled_mutation_rule_emits_no_static_finding(self):
         steps = "\n".join(line for line in GATE_STEPS.split("\n") if "min-kill-rate" not in line)
@@ -168,8 +210,7 @@ class TestGateRules:
                     "rules:\n"
                     "  py.mutation-required:\n"
                     "    disabled: true\n"
-                    "    reason: checked by another required job\n"
-                    "python:\n  coverage:\n    threshold: 85\n"
+                    "    reason: checked by another required job\n" + OPTED_IN_CONFIG
                 ),
             }
         )

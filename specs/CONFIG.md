@@ -83,6 +83,7 @@ go:
   crap:
     max_score: 8
   mutation:
+    enabled: true
     targets:
       - go/internal/rules
     exclude:
@@ -114,6 +115,7 @@ typescript:
       enabled: true
       min_tokens: 100
   mutation:
+    enabled: true
     targets:
       - typescript/src/rules/rules.ts
   dependency_boundaries:
@@ -143,6 +145,7 @@ python:
       enabled: true
       min_tokens: 100
   mutation:
+    enabled: true
     targets:
       - python/src/slophammer/rules
     exclude: []
@@ -183,6 +186,7 @@ rust:
   unsafe:
     policy: forbid
   mutation:
+    enabled: true
     targets:
       - rust/crates/slophammer-cli/src/rust_rules
   dependency_boundaries:
@@ -198,9 +202,9 @@ Rule config supports severity overrides and reasoned disabling:
 rules:
   repo.readme-required:
     severity: warn
-  go.mutation-required:
+  rust.dependency-audit-required:
     disabled: true
-    reason: Mutation testing runs in a separate required release gate.
+    reason: Dependency audit runs in the organization-wide security workflow.
 ```
 
 Valid severities are:
@@ -233,6 +237,50 @@ running tests to measure coverage.
 Rule disabling does not block a direct command such as `dry`, `coverage`,
 `crap`, `mutate`, `boundaries`, or `unsafe`. Calling a direct command is an
 explicit request to run that command.
+
+## Mutation Opt-In
+
+Mutation testing is off by default. Each language section opts in on its own:
+
+```yaml
+go:
+  mutation:
+    enabled: true
+    targets:
+      - internal/rules
+typescript:
+  mutation:
+    enabled: true
+python:
+  mutation:
+    enabled: true
+rust:
+  mutation:
+    enabled: true
+```
+
+`mutation.enabled` is a boolean and defaults to `false`. Every checker accepts
+the key in all four language sections, and each checker acts on its own
+language.
+
+While `<lang>.mutation.enabled` is `false` or missing:
+
+- `check` reports no `<lang>.mutation-required` finding, so a repository with
+  no mutation setup passes.
+- `check --execute` runs no mutation step.
+- `--only <lang>.mutation-required` gives a clean result, the same as for a
+  disabled rule.
+- `mutation.targets` and `mutation.exclude` still set the scope for a direct
+  run, such as `slophammer-go mutate`, and still count toward scope
+  completeness. They do not opt in.
+
+When `<lang>.mutation.enabled` is `true`, the mutation rule runs like any
+other rule: binding CI evidence must run an executing mutation step, and
+`check --execute` runs the configured mutation gate. A reasoned
+`rules.<lang>.mutation-required.disabled: true` entry still turns the rule off
+after the opt-in. Direct commands ignore the opt-in, so someone can run
+`slophammer-go mutate`, `cargo mutants`, `stryker run`, or `mutmut run` by hand
+at any time.
 
 ## Go Config
 
@@ -277,7 +325,8 @@ The direct Go commands use these values as defaults:
   `go.targets`, unless `--target` is passed.
 
 `slophammer-go check --execute` runs configured Go tool checks and adds failures
-to the normal report. Go tool execution runs from discovered Go module roots,
+to the normal report. It runs the mutation gate only when `go.mutation.enabled`
+is `true`. Go tool execution runs from discovered Go module roots,
 so a repo-level config can drive a nested module such as `go/`. Embedded
 `fixtures/`, `templates/`, and `vendor/` modules are not execution targets.
 
@@ -300,7 +349,7 @@ External imports are ignored. Local imports are resolved through the nearest
 `typescript.coverage`, `typescript.complexity`, `typescript.dry`,
 `typescript.mutation`, and `typescript.dependency_boundaries` are parsed as
 typed policy fields. `typescript.complexity` holds `max`, and
-`typescript.mutation` holds `targets`.
+`typescript.mutation` holds `enabled` and `targets`.
 
 The TypeScript policy values have hard recommended bounds. Slophammer rejects
 config that weakens them:
@@ -407,8 +456,10 @@ Under `policy: forbid`, unsafe blocks, unsafe functions, unsafe traits, unsafe
 impls, and unsafe extern blocks are findings unless covered by a specific allow
 entry with a non-empty reason.
 
-`rust.mutation.targets` declares mutation-testing scope. Static checks accept
-`cargo mutants` in normal CI, nightly CI, manual CI, or scripts.
+`rust.mutation.enabled` opts in to mutation testing, and
+`rust.mutation.targets` declares mutation-testing scope. After the opt-in,
+static checks accept `cargo mutants` in normal CI, nightly CI, manual CI, or
+scripts.
 
 `rust.dependency_boundaries` declares local Cargo path dependency boundaries:
 

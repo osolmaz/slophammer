@@ -227,6 +227,7 @@ func TestCheckExecuteAddsToolFindings(t *testing.T) {
 		"  crap:",
 		"    max_score: 8",
 		"  mutation:",
+		"    enabled: true",
 		"    targets:",
 		"      - internal/example.go",
 		"",
@@ -259,6 +260,7 @@ func TestCheckExecuteDoesNotLaunchDisabledMutation(t *testing.T) {
 		"    reason: checked by another required job",
 		"go:",
 		"  mutation:",
+		"    enabled: true",
 		"    targets:",
 		"      - internal/example.go",
 		"",
@@ -279,6 +281,38 @@ func TestCheckExecuteDoesNotLaunchDisabledMutation(t *testing.T) {
 	}
 	if len(runner.calls) != 0 {
 		t.Fatalf("runner calls = %#v, want none", runner.calls)
+	}
+}
+
+func TestCheckExecuteSkipsMutationWithoutOptIn(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, root, "README.md", "# Test\n")
+	writeFile(t, root, "AGENTS.md", "# Agents\n")
+	writeFile(t, root, ".github/workflows/ci.yml", "name: CI\n")
+	writeFile(t, root, "internal/example.go", "package internal\n")
+	writeFile(t, root, "slophammer.yml", strings.Join([]string{
+		"go:",
+		"  mutation:",
+		"    targets:",
+		"      - internal/example.go",
+		"",
+	}, "\n"))
+	runner := &recordingRunner{}
+	var out bytes.Buffer
+	var errOut bytes.Buffer
+
+	code := check(context.Background(), CheckOptions{
+		Root:        root,
+		Format:      "json",
+		Execute:     true,
+		OnlyRuleIDs: []string{rules.GoMutationRequiredRuleID},
+	}, &out, &errOut, runner)
+
+	if code != ExitOK {
+		t.Fatalf("code = %d, want %d; stdout=%q stderr=%q", code, ExitOK, out.String(), errOut.String())
+	}
+	if len(runner.calls) != 0 {
+		t.Fatalf("runner calls = %#v, want none without go.mutation.enabled", runner.calls)
 	}
 }
 
@@ -372,7 +406,10 @@ func TestCheckExecuteRunsSurvivorFailingMutationGate(t *testing.T) {
 		"go.mod":              {Path: "go.mod"},
 		"internal/example.go": {Path: "internal/example.go"},
 	})
-	cfg := config.Config{Go: config.GoConfig{Targets: []string{"internal"}}}
+	cfg := config.Config{Go: config.GoConfig{
+		Targets:  []string{"internal"},
+		Mutation: config.MutationConfig{Enabled: true},
+	}}
 	runner := &survivorMutationRunner{}
 
 	findings := executeGoChecks(context.Background(), snapshot, CheckOptions{Root: "/repo", Execute: true}, rules.NewPolicy(cfg, nil), runner)
