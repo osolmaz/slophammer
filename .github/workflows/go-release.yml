@@ -1,21 +1,21 @@
 name: Go Release
 
 on:
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       tag:
-        description: "Go release tag to validate, for example go/v0.1.0"
+        description: "Tag of a published Go GitHub Release to run again, for example go/v0.1.0"
         required: true
         type: string
-  push:
-    tags:
-      - "go/v*"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   release:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'go/v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -31,18 +31,21 @@ jobs:
 
       - name: Resolve release tag
         id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
         run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            tag="${GITHUB_REF_NAME}"
-          else
-            tag="${{ inputs.tag }}"
-          fi
+          tag="$RELEASE_TAG"
           if ! printf '%s' "$tag" | grep -Eq '^go/v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
             echo "invalid Go release tag: $tag" >&2
             exit 1
           fi
           if ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
             echo "release tag does not exist locally: $tag" >&2
+            exit 1
+          fi
+          if [ "$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft 2>/dev/null)" != "false" ]; then
+            echo "no published GitHub Release for $tag; publish the release to start this workflow" >&2
             exit 1
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
@@ -84,7 +87,6 @@ jobs:
           node scripts/check-conformance.mjs
 
       - name: Verify tagged go install
-        if: github.event_name == 'push'
         env:
           RELEASE_VERSION: ${{ steps.release.outputs.version }}
         run: |
@@ -92,38 +94,3 @@ jobs:
           GOBIN="$tmp/bin" go install "github.com/osolmaz/slophammer/go/cmd/slophammer-go@$RELEASE_VERSION"
           "$tmp/bin/slophammer-go" help
           "$tmp/bin/slophammer-go" rules --format json
-
-      - name: Create GitHub Release
-        if: github.event_name == 'push'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          tag="${{ steps.release.outputs.tag }}"
-          version="${{ steps.release.outputs.version }}"
-          notes_file="$(mktemp)"
-
-          cat > "$notes_file" <<EOF
-          Released the Slophammer Go CLI.
-
-          Install with:
-
-          \`\`\`sh
-          go install github.com/osolmaz/slophammer/go/cmd/slophammer-go@$version
-          \`\`\`
-          EOF
-
-          if gh release view "$tag" >/dev/null 2>&1; then
-            gh release edit "$tag" \
-              --title "slophammer-go $version" \
-              --notes-file "$notes_file" \
-              --draft=false \
-              --prerelease=false \
-              --verify-tag
-          else
-            gh release create "$tag" \
-              --title "slophammer-go $version" \
-              --notes-file "$notes_file" \
-              --verify-tag
-          fi

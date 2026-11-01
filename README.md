@@ -347,10 +347,11 @@ and exit codes, which is how three codebases stay one product.
 Run `make check` from the repo root to run the same gates CI runs, or a
 per-language target such as `make check-go`. CI also runs every checker
 against this repository itself, so Slophammer must pass Slophammer before
-anything merges. Release tags (`go/vX.Y.Z`, `typescript/vX.Y.Z`,
-`rust/vX.Y.Z`, and `python/vX.Y.Z`) drive workflows that validate, publish,
-and create the [GitHub releases](https://github.com/osolmaz/slophammer/releases);
-the release policy and shared architecture live in [Product](specs/PRODUCT.md)
+anything merges. Publishing a
+[GitHub release](https://github.com/osolmaz/slophammer/releases) with a package
+tag (`go/vX.Y.Z`, `typescript/vX.Y.Z`, `rust/vX.Y.Z`, or `python/vX.Y.Z`)
+starts the workflow that validates and publishes that package; the release
+policy and shared architecture live in [Product](specs/PRODUCT.md)
 and [Implementation Model](docs/IMPLEMENTATION_MODEL.md).
 
 ## Guardrail Principles

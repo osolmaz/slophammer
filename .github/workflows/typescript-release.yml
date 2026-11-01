@@ -1,18 +1,17 @@
 name: TypeScript Release
 
 on:
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       tag:
-        description: "TypeScript release tag to publish, for example typescript/v0.5.0"
+        description: "Tag of a published TypeScript GitHub Release to run again, for example typescript/v0.5.0"
         required: true
         type: string
-  push:
-    tags:
-      - "typescript/v*"
 
 concurrency:
-  group: typescript-release-${{ github.workflow }}-${{ github.ref }}
+  group: typescript-release-${{ github.workflow }}-${{ github.event.release.tag_name || inputs.tag }}
   cancel-in-progress: false
 
 permissions:
@@ -20,10 +19,11 @@ permissions:
 
 jobs:
   release:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'typescript/v')
     # npm trusted publishing + provenance requires a GitHub-hosted runner.
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       id-token: write
     defaults:
       run:
@@ -35,19 +35,22 @@ jobs:
 
       - name: Resolve release tag
         id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
         run: |
           set -euo pipefail
-          if [ "${{ github.event_name }}" = "push" ]; then
-            tag="${GITHUB_REF_NAME}"
-          else
-            tag="${{ inputs.tag }}"
-          fi
+          tag="$RELEASE_TAG"
           if ! printf '%s' "$tag" | grep -Eq '^typescript/v[0-9]+\.[0-9]+\.[0-9]+$'; then
             echo "invalid TypeScript release tag: $tag" >&2
             exit 1
           fi
           if ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
             echo "release tag does not exist locally: $tag" >&2
+            exit 1
+          fi
+          if [ "$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft 2>/dev/null)" != "false" ]; then
+            echo "no published GitHub Release for $tag; publish the release to start this workflow" >&2
             exit 1
           fi
           sha="$(git rev-list -n 1 "$tag")"
@@ -209,41 +212,3 @@ jobs:
 
       - name: Publish
         run: npm publish --access public --provenance
-
-      - name: Create GitHub Release
-        working-directory: .
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ steps.release.outputs.tag }}
-        run: |
-          set -euo pipefail
-
-          tag="$RELEASE_TAG"
-          version="${tag#typescript/v}"
-          notes_file="$(mktemp)"
-
-          cat > "$notes_file" <<EOF
-          Published the Slophammer TypeScript CLI to npm.
-
-          Install with:
-
-          \`\`\`sh
-          npm install -g slophammer-ts@$version
-          \`\`\`
-
-          Package: https://www.npmjs.com/package/slophammer-ts/v/$version
-          EOF
-
-          if gh release view "$tag" >/dev/null 2>&1; then
-            gh release edit "$tag" \
-              --title "slophammer-ts v$version" \
-              --notes-file "$notes_file" \
-              --draft=false \
-              --prerelease=false \
-              --verify-tag
-          else
-            gh release create "$tag" \
-              --title "slophammer-ts v$version" \
-              --notes-file "$notes_file" \
-              --verify-tag
-          fi

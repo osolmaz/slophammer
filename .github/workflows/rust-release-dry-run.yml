@@ -1,9 +1,6 @@
 name: Rust Release Dry Run
 
 on:
-  push:
-    tags:
-      - "rust/v*"
   workflow_dispatch:
 
 permissions:

@@ -94,8 +94,10 @@ See
 ## Release Workflow
 
 The crates.io release path is implemented by
-`.github/workflows/rust-release.yml`. It runs for `rust/v*` tag pushes and can
-also be started manually with `workflow_dispatch`.
+`.github/workflows/rust-release.yml`. It runs when a GitHub Release with a
+`rust/v*` tag is published. A tag push alone starts no release. To retry a
+failed publish, start the workflow by hand with `workflow_dispatch` and the tag
+of the published release.
 
 Before a release:
 
@@ -103,7 +105,8 @@ Before a release:
 2. Store it as the repository or `crates-io` environment secret named
    `CARGO_REGISTRY_TOKEN`.
 3. Make sure the release commit is on `origin/main`.
-4. Tag the commit with the Rust workspace version, for example `rust/v0.1.1`.
+4. Publish a GitHub Release for the commit with the Rust workspace version as
+   its tag, for example `rust/v0.1.1`.
 
 The workflow:
 
@@ -114,8 +117,7 @@ The workflow:
 5. runs `cargo test` from Cargo's verified package directory,
 6. installs the packaged CLI artifact,
 7. runs installed CLI smoke checks and shared conformance,
-8. publishes only `slophammer-rs`,
-9. creates or updates the GitHub Release for the Rust release tag.
+8. publishes only `slophammer-rs`.
 
 Publishing to crates.io is permanent. The publish helper skips
 `slophammer-rs@<version>` if that version is already visible on crates.io.
