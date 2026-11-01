@@ -90,14 +90,28 @@ successfully when the catalog is written.
 
 ## Release Policy
 
-The Go, TypeScript, and Rust implementations are releasable products.
+The Go, TypeScript, Python, and Rust implementations are releasable products.
+Each package has its own tag prefix and release workflow:
 
-Go releases use the `go/` submodule tag shape:
+| Package         | Tag prefix     | Workflow                 |
+| --------------- | -------------- | ------------------------ |
+| `slophammer-go` | `go/v`         | `go-release.yml`         |
+| `slophammer-ts` | `typescript/v` | `typescript-release.yml` |
+| `slophammer-py` | `python/v`     | `python-release.yml`     |
+| `slophammer-rs` | `rust/v`       | `rust-release.yml`       |
+
+Publishing a GitHub Release starts a release. After the version bump is on
+`main`, publish one GitHub Release for each package:
 
 ```sh
-git tag go/v0.1.0
-git push origin go/v0.1.0
+gh release create go/v0.1.0 --target main --title "slophammer-go v0.1.0" \
+  --notes "Install with: go install github.com/osolmaz/slophammer/go/cmd/slophammer-go@v0.1.0"
 ```
+
+The release creates its tag when the tag does not exist yet. Only the workflow
+whose tag prefix matches the release tag runs; the other release workflows
+skip. A tag push alone publishes nothing. To retry a failed publish, run the
+matching workflow by hand with the tag of the published release.
 
 Users install a tagged Go release with:
 
@@ -107,12 +121,16 @@ go install github.com/osolmaz/slophammer/go/cmd/slophammer-go@v0.1.0
 
 The TypeScript checker is released as the `slophammer-ts` npm package. The
 TypeScript release workflow validates `typescript/vX.Y.Z` tags, runs the full
-TypeScript package gate, runs shared conformance, publishes with npm trusted
-publishing, and creates the GitHub Release.
+TypeScript package gate, runs shared conformance, and publishes with npm
+trusted publishing.
+
+The Python checker is released as the `slophammer-py` PyPI package. The Python
+release workflow validates `python/vX.Y.Z` tags, runs the Python gate and the
+mutation sweep, runs shared conformance, and publishes with PyPI trusted
+publishing.
 
 The Go release workflow validates `go/vX.Y.Z` tags, runs the Go release
-checks, runs shared conformance, verifies tagged `go install` on tag push, and
-creates the GitHub Release.
+checks, runs shared conformance, and verifies the tagged `go install`.
 
 The Rust checker is released to crates.io as the `slophammer-rs` Cargo package
 built from `rust/crates/slophammer-cli`. Users install a release with

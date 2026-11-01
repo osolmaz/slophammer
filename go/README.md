@@ -43,11 +43,12 @@ go run ./cmd/slophammer-go mutate .. --scan
 
 The Go implementation is the first releasable Slophammer product.
 
-Release tags use the `go/` submodule prefix:
+Release tags use the `go/` submodule prefix. Publishing a GitHub Release with
+that tag starts the Go release workflow:
 
 ```sh
-git tag go/v0.1.0
-git push origin go/v0.1.0
+gh release create go/v0.1.0 --target main --title "slophammer-go v0.1.0" \
+  --notes "Install with: go install github.com/osolmaz/slophammer/go/cmd/slophammer-go@v0.1.0"
 ```
 
 Users install a tagged release with:
@@ -56,12 +57,12 @@ Users install a tagged release with:
 go install github.com/osolmaz/slophammer/go/cmd/slophammer-go@v0.1.0
 ```
 
-Before tagging, run the full Go validation set and the shared conformance
+Before releasing, run the full Go validation set and the shared conformance
 script.
 
-The Go release workflow validates `go/vX.Y.Z` tags and runs the same release
-checks. On tag pushes, it also verifies the documented tagged `go install`
-command and creates the GitHub Release.
+The Go release workflow validates `go/vX.Y.Z` tags, runs the same release
+checks, and verifies the documented tagged `go install` command. A tag push
+alone starts no release.
 
 ## Local Checks
 
